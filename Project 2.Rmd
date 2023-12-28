@@ -1,0 +1,212 @@
+---
+title: "Project 2"
+author: "Harshitha Sriramoju"
+date: "2023-11-07"
+output: html_document
+---
+
+*#1: INTRODUCTION*
+
+**The data set chosen for this project comes directly from the Museum of Modern Art in Manhattan, New York. Artists and their biographical information is enclosed in the data set. The data set is linked here: https://github.com/MuseumofModernArt/collection/tree/master/Artists.csv.**
+
+**I picked this data set due to my interest in art. On a personal note, I missed out on seeing the artwork at MoMa when I visited NYC a couple of years ago so this making it up in a way. I will be investigating patterns between the non-American artists in this huge data set with over 15,000 data values.**
+
+```{r Echo= FALSE}
+knitr::include_graphics("C:/Users/harsh/Downloads/moma_image_2.webp")
+```
+
+*#2: DATA PREPARATION*
+
+```{r Echo= FALSE}
+Artists<-read.csv("C:/Users/harsh/Downloads/Artists.csv")
+```
+
+
+*I was able to view the .csv file in GitHub as seen in the link in the previous section. I had trouble downloading the file in the .csv format, but was able to solve it later and import to R. The data was fairly clean as all the variables were defined and variables with solely numbers were defined as numeric type. The challenges of the data was mostly the interpretation of the variable. For instance, the ConstituentID was our of order of the usual numbers of the rows and I was confused about its purpose in the data. In additon, variables such as ULAN and Wiki QID needed some research to understand their significance. ULAN or the Union List of Artists Names is a structured vocabulary of artist names and biographical information which can be looked up according to an artists unique ID. Wiki QID, similarly, also generates a unique ID of a particular artist that can be looked up on Wikipedia.*
+
+*I have removed all NA or missing values in the ArtistBio column as this is the variable of interest in this project. I handled them using the filter() function. Total number of observation are 13028.*
+
+```{r echo=FALSE}
+#checking if variables are numeric
+is.numeric(Artists$EndDate)
+is.numeric(Artists$BeginDate)
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+library(dplyr)
+```
+
+```{r echo=FALSE}
+#removing missing values in ArtistBio column
+my_artists<-filter(Artists, ArtistBio!="" )
+
+nrow(my_artists)
+```
+
+
+*3: VARIABLE DESCRIPTIONS*
+
+```{r echo=FALSE}
+
+#creating subset of the data set with variables of interest
+my_artists <- filter(Artists, 
+                     Nationality != "", 
+                     Gender != "", 
+                     BeginDate != 0, 
+                     EndDate != 0, 
+                     ArtistBio != "")
+
+
+my_artists<-select(my_artists, -Wiki.QID, -ULAN)
+
+head(my_artists, 10)
+
+```
+
+```{r include=FALSE}
+library(kableExtra)
+```
+
+
+```{r echo=FALSE}
+#nicely formatted table
+
+is.numeric(my_artists$ConstituentID)
+
+artists_table <- data.frame(
+  Variable = c("Constituent ID", "Display Name", "Artist Bio", "Nationality", "Gender", "Begin Date",   "End Date"),
+  Type = c("Numeric", "Character", "Character", "Character", "Character", "Numeric", "Numeric"),
+  Description = c("identifier assigned to a person or organization", "Name of the Artist", "Nationality and Life Term","Place of Origin","Male/Female", "Birth Year", "Death Year")
+)
+
+kable_styling(kable(artists_table), full_width=FALSE)
+
+```
+```{r echo=FALSE}
+#making all data points in the gender column start with a capitalized letter to make plotting easier
+
+table(my_artists$Gender)
+
+my_artists$Gender <- replace(my_artists$Gender, my_artists$Gender == "male", "Male")
+my_artists$Gender <- replace(my_artists$Gender, my_artists$Gender == "female", "Female")
+my_artists$Gender<-replace(my_artists$Gender, my_artists$Gender == "", "Prefer Not to Say")
+
+#run table command again to check
+table(my_artists$Gender)
+```
+
+
+#4: UNIVARIATE ANALYSES:
+
+```{r echo=FALSE}
+
+barplot(table(my_artists$Gender), main="Gender Distribution", xlab="Gender", ylab="Frequency", col="#f9c2e9")
+mean(table(my_artists$Gender))
+```
+
+**Above is graph of the frequency of artists at MoMa based on Gender. Males are exponentially of higher proportion of the data set compared to women.**
+
+```{r echo=FALSE}
+hist(my_artists$BeginDate, main= "Artists' Birth Year Distribution", xlab= "Year", col="#bae1ff")
+mean(my_artists$BeginDate)
+
+```
+Above graph shows a unimodal peak closer to the 1900s as the birth year for most artists in the data set.
+```{r echo=FALSE}
+hist(my_artists$EndDate, main="Artists' Death Year Distribution", xlab= "Year", col="#baffc9")
+mean(my_artists$EndDate)
+```
+**In the above graph, the death year of most artists seems to be concentrated around the late 2000s.**
+
+```{r echo=FALSE}
+my_artists$Age<- (my_artists$EndDate- my_artists$BeginDate)
+hist(my_artists$Age, main="Artists' Age Distribution", xlab= "Age", col="#ffdfba")
+mean(my_artists$Age)
+```
+
+**The graph is unimodal with a peak at around 70-80 years. This is the common age of the artists in my data set.**
+
+```{r echo=FALSE}
+my_artists$Nationality_Type <- c()
+
+# Loop through each row
+for (i in 1:nrow(my_artists)) {
+  if (substr(my_artists$Nationality[i], 1, nchar("American")) == "American" || 
+      substr(my_artists$Nationality[i], 1, nchar("american")) == "american") {
+    my_artists$Nationality_Type[i] <- "American"
+  } else {
+    my_artists$Nationality_Type[i] <- "Non-American"
+  }
+}
+```
+
+```{r echo=FALSE}
+barplot(table(my_artists$Nationality_Type), main= "Nationality_Type Distribution", xlab= 
+"Nationality_Type", ylab= "Frequency", col= "darkred")
+mean(table(my_artists$Nationality_Type))
+```
+
+
+**There are more Non-Americans compared to Americans in the data set. But, the difference is not hugely which might indicate that there are disproportionately lower number of Non-American artists in Moma.**
+
+
+
+#5: MULTIVARIATE ANALYSES:
+
+```{r echo=FALSE}
+
+plot(my_artists$EndDate, my_artists$Age, main="Death Year vs Age", xlab= "Death Year", ylab="Age (Years)", xlim= c(1825, 2000), col="#bcbad7")
+
+cor(my_artists$EndDate, my_artists$Age)
+```
+
+**Death Year and the Age have a moderate correlation of about 0.4. This means that the death year is not as related to the age which was odd as the age is derived from the death year.**
+
+```{r echo=FALSE}
+plot(my_artists$BeginDate, my_artists$Age, main="Birth Year vs Age", xlab= "Birth Year", ylab="Age (Years)", xlim= c(1825, 2000), col="maroon")
+
+cor(my_artists$BeginDate, my_artists$Age)
+
+```
+
+**Birth Year and the Age seem to have a weak correlation of about -0.06. This means that the birth year is not related to the age which was odd as the age is derived from the birth year. But it makes sense that the death year is more correlated to the age rather than the birth year as the death year is closest to the age.**
+
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+```
+
+```{r echo=FALSE}
+plot(my_artists$BeginDate, my_artists$EndDate, main="Birth Year vs Death Year", xlab= "Birth Year", ylab="Death Year", xlim= c(1825, 2000), ylim= c(1800, 2500), col="orange", pch= 16)
+
+
+cor(my_artists$BeginDate, my_artists$EndDate)
+```
+**Birth year and death year seem to have a high correlatio of 0.9. This is a strong relationship. This means that the birth years of artists is heavily correlated to the death years of the artists.**
+
+```{r echo=FALSE}
+plot(my_artists$ConstituentID, my_artists$Age, main="Constituent ID vs Age ", xlab= "Constituent ID", ylab="Age (Years)", xlim= c(1825, 2000), col="grey", pch= 16)
+
+cor(my_artists$ConstituentID, my_artists$Age)
+
+```
+
+**Constituent ID of the respective artists is not correlated to the Age of artists as the correlation is weak with a value of -0.04. This aligns with the assumptions as these variables are in no way connected to each other in the context of the artists data set.**
+
+#6 REPRODUCIBILTY
+
+*My .rmd file proved to be reproducible as I shared my file to a friend and they were able to run the code in its entirety while also understanding the purpose of the code due to the comments. I ensured that my variables were names in a way that was understandable to most people with an abundance of comments so there are no confusions on how to execute the code. One mistake I did make that I have corrected is that I forgot to include read.csv in my code as I usually import the code from the environment through the Import Dataset button.*
+
+#7 CHOICE ELEMENTS
+
+*I have used 5 or more in-line codes within your report. I have also created two new variables of interest which are called "Age" and "Nationality Type". I used a loop to process the data or carry out some analysis that could not be more efficiently achieved without one to sort the Nationalities into either American or Non-American in the Nationality type variable.I used an if statement to either process the data in the same loop. Lastly, I formatted one string variable of interest to make the Gender variable have "male" and "female" have their first letter capitalized.*
+
+#8: CONCLUSION
+
+*The univariate distributions had more insightful patterns compared to the bivariate distributions for the Moma artists data set. It can be discerned from the univariate distributions that most artists are male, born in the late 1900s (in the age group of 70 to 80 years) and non-American. A notable piece of information from the bivariate distribution was that there was a strong relationship between the birth and death year of the artists. These are all things that were expected other than the relationship between the birth year and death year of artists.*
+
+
+#9: REFERENCES
+
+**Image from HelloTickets Website:** https://www.hellotickets.com/us/new-york/moma/sc-1-756
+
+**Data set from GitHub posted by Moma:** https://github.com/MuseumofModernArt/collection/tree/master/Artists.csv
